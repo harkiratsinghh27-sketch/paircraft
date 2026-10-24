@@ -105,6 +105,7 @@ function RoomContent() {
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(e => console.log('Remote stream playback triggered:', e));
       if (!hasCelebrated) {
         confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
         setHasCelebrated(true);

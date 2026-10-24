@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { Play, Copy, Check, Trash2, Terminal, Code2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { transform } from 'sucrase';
 
 interface CodeEditorProps {
   code: string;
@@ -105,13 +106,11 @@ export default function CodeEditor({
 
     try {
       if (language === 'javascript' || language === 'typescript') {
-        // Strip TS types if simple, or execute using Function sandbox
-        const cleanCode = code
-          .replace(/:\s*[A-Za-z0-9_<>\[\]]+(?=\s*[=,;\)])/g, '')
-          .replace(/interface\s+.*?\{[\s\S]*?\}/g, '')
-          .replace(/type\s+.*?=.*?;/g, '');
+        const jsCode = transform(code, {
+          transforms: ['typescript']
+        }).code;
 
-        const runFn = new Function('console', cleanCode);
+        const runFn = new Function('console', jsCode);
         runFn(customConsole);
 
         if (logs.length === 0) {
