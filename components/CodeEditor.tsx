@@ -315,8 +315,8 @@ export default function CodeEditor({
           >
             <Play className="w-3 h-3 fill-current" />
             <span>Run</span>
-            <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] bg-zinc-300/80 rounded font-mono text-zinc-800">
-              Ctrl+↵
+            <kbd className="hidden sm:inline px-1.5 py-0.5 text-[9px] bg-zinc-300/80 rounded font-mono text-zinc-800">
+              Ctrl+Enter
             </kbd>
           </button>
         </div>
@@ -337,6 +337,7 @@ export default function CodeEditor({
             fontLigatures: true,
             lineHeight: 21,
             minimap: { enabled: false },
+            stickyScroll: { enabled: false },
             scrollBeyondLastLine: false,
             smoothScrolling: true,
             cursorBlinking: 'smooth',
