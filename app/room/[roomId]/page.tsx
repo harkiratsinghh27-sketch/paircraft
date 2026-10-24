@@ -98,6 +98,7 @@ function RoomContent() {
   } = useWebRTC({
     roomId,
     userName,
+    currentCode: code,
     onCodeSync: (newCode) => {
       setCode((prev) => (prev === newCode ? prev : newCode));
     },
