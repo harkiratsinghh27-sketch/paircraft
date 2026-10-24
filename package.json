@@ -1,0 +1,33 @@
+{
+  "name": "webrtc-pair-ide",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"SIGNAL,NEXT\" -c \"magenta,cyan\" \"node server.js\" \"next dev\"",
+    "signaling": "node server.js",
+    "next": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "canvas-confetti": "^1.9.4",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "ws": "^8.22.0",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8.18.2",
+    "concurrently": "^10.0.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

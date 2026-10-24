@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070b13;
+  --foreground: #f8fafc;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+}
+
+/* Remote Cursor and Line Highlights in Monaco Editor */
+.remote-cursor-line {
+  background: rgba(56, 189, 248, 0.12);
+  border-left: 2px solid #38bdf8;
+}
+
+.remote-cursor-badge {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
