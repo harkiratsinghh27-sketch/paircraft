@@ -87,22 +87,21 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        case 'ping': {
+          ws.send(JSON.stringify({ type: 'pong', timestamp: data.timestamp || Date.now() }));
+          break;
+        }
+
         case 'webrtc-offer':
         case 'webrtc-answer':
         case 'ice-candidate':
         case 'code-sync':
         case 'cursor-sync':
         case 'language-change':
-        case 'chat-message':
-        case 'ping': {
+        case 'chat-message': {
           if (!currentRoom || !rooms.has(currentRoom)) return;
           const targetPeerId = data.targetPeerId;
           const roomPeers = rooms.get(currentRoom);
-
-          if (type === 'ping') {
-            ws.send(JSON.stringify({ type: 'pong', timestamp: data.timestamp }));
-            return;
-          }
 
           roomPeers.forEach(peer => {
             const isMatch = targetPeerId ? peer.peerId === targetPeerId : peer.peerId !== currentPeerId;
