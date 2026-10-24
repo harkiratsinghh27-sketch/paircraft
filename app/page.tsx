@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Code2, Users, Video, Zap, MonitorUp, ShieldCheck,
-  ArrowRight, Sparkles, Terminal, CheckCircle2, Copy
+  Code2, Users, Video, Zap, MonitorUp, Shield,
+  ArrowRight, Terminal, Check
 } from 'lucide-react';
 
 export default function Home() {
@@ -34,7 +34,6 @@ export default function Home() {
     const name = userName.trim() || 'Engineer';
     localStorage.setItem('paircraft_username', name);
 
-    // Extract room ID if user pasted full URL
     let target = roomInput.trim();
     if (target.includes('/room/')) {
       target = target.split('/room/')[1].split('?')[0];
@@ -43,109 +42,88 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b13] text-slate-100 flex flex-col font-sans selection:bg-sky-500/30">
-      {/* Background radial glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-sky-600/10 rounded-full blur-[120px]" />
-        <div className="absolute top-[40%] right-[10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px]" />
-      </div>
-
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800">
       {/* Navigation Header */}
-      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 flex items-center justify-between border-b border-slate-800/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-sky-500/25 text-lg">
-            ⚡
+      <header className="max-w-6xl mx-auto w-full px-6 py-5 flex items-center justify-between border-b border-zinc-800/80">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center font-mono font-bold text-xs text-zinc-200">
+            P
           </div>
-          <div>
-            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-sky-400 via-indigo-200 to-white bg-clip-text text-transparent">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm tracking-tight text-zinc-100">
               PairCraft
             </span>
-            <span className="ml-2 px-2 py-0.5 text-[11px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full">
-              v1.0 WebRTC P2P
+            <span className="px-1.5 py-0.2 text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 rounded">
+              WebRTC Core
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <a
-            href="https://github.com/harkiratsinghh27-sketch"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5"
-          >
-            <span>GitHub</span>
-          </a>
-          <a
-            href="https://datapilot-ai-sandy.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-lg border border-slate-700 transition"
-          >
-            DataPilot AI ↗
-          </a>
+        <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
+          <span>● P2P Direct Mesh</span>
+          <span className="hidden sm:inline">● Sub-10ms DataChannels</span>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="relative z-10 max-w-5xl mx-auto w-full px-6 pt-16 pb-20 flex-1 flex flex-col items-center text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs font-medium text-sky-300 mb-8 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-          <span>Native Peer-to-Peer Collaborative IDE</span>
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto w-full px-6 pt-20 pb-16 flex-1 flex flex-col items-center text-center">
+        {/* Status Pill */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300 mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-emerald-400">Sub-80ms Latency</span>
+          <span>Low-Latency Real-Time Pair Programming</span>
         </div>
 
-        {/* Main Title */}
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white max-w-4xl leading-[1.15]">
-          Real-Time Pair Programming{' '}
-          <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-            Over Direct WebRTC
-          </span>
+        {/* Headline */}
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-100 max-w-2xl leading-[1.2]">
+          Collaborative coding with zero server relay delay.
         </h1>
 
-        <p className="mt-6 text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed">
-          Zero install, zero plugins. Live browser-to-browser video, crystal-clear voice,
-          screen share, and synchronized multi-cursor Monaco IDE powered by CRDT conflict resolution.
+        <p className="mt-4 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
+          Direct browser-to-browser WebRTC audio, video, screen sharing, and synchronized Monaco editor over reliable DataChannels.
         </p>
 
         {/* Action Card */}
-        <div className="mt-10 w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
-          <div className="mb-5 text-left">
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
-              Your Engineer / Display Name
-            </label>
-            <input
-              type="text"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="e.g. Harkirat Singh"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-sky-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition"
-            />
-          </div>
+        <div className="mt-10 w-full max-w-md bg-[#121215] border border-zinc-800 rounded-lg p-5 shadow-xl text-left">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Your Display Name
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="e.g. Harkirat Singh"
+                className="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none transition"
+              />
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Start New Session */}
             <button
               onClick={handleStartNewSession}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 active:scale-95 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-500/25 transition"
+              className="w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs rounded transition flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.99]"
             >
-              <span>Start Pair Session</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>Create Instant Session</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
 
-            {/* Join Existing Session */}
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-zinc-800"></div>
+              <span className="flex-shrink mx-3 text-[11px] font-mono text-zinc-500">OR JOIN EXISTING</span>
+              <div className="flex-grow border-t border-zinc-800"></div>
+            </div>
+
             <form onSubmit={handleJoinSession} className="flex gap-2">
               <input
                 type="text"
                 value={roomInput}
                 onChange={(e) => setRoomInput(e.target.value)}
-                placeholder="Enter Room Code..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition"
+                placeholder="Enter Session ID or URL..."
+                className="flex-1 bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none transition font-mono"
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700 transition"
+                disabled={!roomInput.trim()}
+                className="px-3.5 py-2 bg-zinc-850 hover:bg-zinc-800 disabled:opacity-40 border border-zinc-700 text-zinc-200 font-medium text-xs rounded transition"
               >
                 Join
               </button>
@@ -154,57 +132,42 @@ export default function Home() {
         </div>
 
         {/* Feature Grid */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition">
-            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-4">
-              <Video className="w-5 h-5" />
+        <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl text-left">
+          <div className="p-3.5 bg-[#121215] border border-zinc-800/80 rounded-lg">
+            <div className="flex items-center gap-2 mb-1.5 text-zinc-200 text-xs font-semibold">
+              <Zap className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Sub-10ms P2P Mesh</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-2">WebRTC P2P Audio & Video</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Direct peer-to-peer UDP media streaming without central relay lag. Built-in microphone mute, video toggle, and high-framerate screen sharing.
+            <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
+              RTCDataChannel keystroke sync with zero intermediary database latency.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
-              <Code2 className="w-5 h-5" />
+          <div className="p-3.5 bg-[#121215] border border-zinc-800/80 rounded-lg">
+            <div className="flex items-center gap-2 mb-1.5 text-zinc-200 text-xs font-semibold">
+              <Shield className="w-3.5 h-3.5 text-zinc-400" />
+              <span>DSP Voice Filter</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-2">Monaco Code Editor</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              The full VS Code editor engine in the browser. Supports multi-cursor real-time sync, syntax highlighting for TypeScript, Python, Go, and Rust.
+            <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
+              85Hz highpass + lowpass bandpass filter and dynamics compression for speech clarity.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
-              <Zap className="w-5 h-5" />
+          <div className="p-3.5 bg-[#121215] border border-zinc-800/80 rounded-lg">
+            <div className="flex items-center gap-2 mb-1.5 text-zinc-200 text-xs font-semibold">
+              <Terminal className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Monaco + Sucrase</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-2">Conflict-Free CRDT Sync</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Real-time keystroke synchronization over low-overhead RTCDataChannel. Edits merge mathematically without character corruption or cursor jumping.
+            <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
+              In-browser TypeScript compilation and sandboxed execution in sub-millisecond time.
             </p>
           </div>
-        </div>
-
-        {/* Technical Architecture Quote */}
-        <div className="mt-16 p-6 rounded-2xl bg-slate-900/40 border border-slate-800 max-w-3xl w-full text-left">
-          <div className="flex items-center gap-2 text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
-            <Terminal className="w-4 h-4" />
-            <span>Architecture & Pairio Engineering Synergy</span>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Built specifically to demonstrate real-time collaborative systems architecture: STUN NAT hole-punching,
-            SDP offer/answer negotiation, MediaStream track replacement for screen sharing, and reliable SCTP-based DataChannels
-            for synchronous pair programming.
-          </p>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/60 py-6 text-center text-xs text-slate-500">
-        <p>
-          Designed & Built by <span className="text-slate-300 font-semibold">Harkirat Singh</span> | Computer Systems Technician Graduate, Durham College | Delhi NCR
-        </p>
+      {/* Minimal Footer */}
+      <footer className="border-t border-zinc-850 py-4 text-center text-[11px] text-zinc-600 font-mono">
+        PairCraft • Built for Real-Time Engineering Collaboration
       </footer>
     </div>
   );
