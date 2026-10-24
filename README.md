@@ -1,111 +1,111 @@
-# ⚡ PairCraft: Low-Latency WebRTC Collaborative IDE
+# PairCraft
 
-> **Real-Time Peer-to-Peer Pair Programming Platform** featuring direct bi-directional audio/video streaming, desktop screen sharing, synchronized Monaco code editing over WebRTC DataChannels, and in-browser sandboxed execution.
+A low-latency, peer-to-peer pair programming environment built with WebRTC DataChannels, custom Web Audio DSP, and Monaco.
 
-![PairCraft Preview](https://img.shields.io/badge/WebRTC-P2P_Mesh-emerald)
-![Monaco Editor](https://img.shields.io/badge/Monaco_Editor-VSCode_Engine-blue)
-![Next.js](https://img.shields.io/badge/Next.js_16-App_Router-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
-![License](https://img.shields.io/badge/License-MIT-purple)
+PairCraft establishes direct browser-to-browser data channels for keystroke and cursor synchronization, bypassing central databases and servers for editor state. Media streams (audio, webcam, screen share) travel directly between peers over encrypted SRTP/DTLS.
 
 ---
 
-## 🌟 Key Highlights
+## Technical Highlights
 
-- **Direct P2P Audio & Video:** Zero-relay media streaming directly between peers using `RTCPeerConnection` with sub-50ms latency.
-- **Native Screen Sharing:** Seamlessly switch between local webcam and display media (`getDisplayMedia`) without interrupting active calls.
-- **Sub-20ms Code & Cursor Synchronization:** Real-time character-by-character editing powered by Monaco Editor (`@monaco-editor/react`) and synchronized over WebRTC `RTCDataChannel` (with automatic WebSocket fallback).
-- **In-Browser Sandboxed Code Execution:** Execute TypeScript, JavaScript, and other snippets directly in a secure, captured in-browser runner with terminal feedback.
-- **Microservice WebSocket Signaling Server:** Lightweight, high-throughput signaling gateway for SDP offer/answer exchanges and STUN-assisted ICE candidate routing.
-- **Zero Configuration:** 1-click instant room creation and shareable invite links with auto-reconnection and connection health telemetry.
+### 1. Peer-to-Peer Data Channels (`RTCDataChannel`)
+- Keystrokes, cursor positions, and chat messages transmit directly over unordered/reliable SCTP data channels.
+- Round-trip latency is typically within 5–25ms on local/metro networks without relay hop overhead.
+- Fallback WebSocket signaling relay triggers automatically only during initial ICE gathering or in restrictive NAT environments.
+
+### 2. Web Audio DSP & Voice Processing Pipeline
+Audio streams pass through an in-browser Web Audio API signal processing chain before WebRTC encoding:
+- **Highpass Filter:** 90Hz cutoff (Butterworth response) to eliminate mechanical keyboard desk rumble.
+- **Lowpass / Bandpass Filter:** 3.8kHz cutoff with $Q = 0.707$ to cut high-frequency metallic hiss and coil whine.
+- **Dynamics Compressor:** Multi-stage compression acting as an Automatic Gain Control (AGC) and soft noise gate.
+- **Echo Guard:** Remote loopback protection to prevent acoustic feedback during single-machine testing.
+- **Opus SDP Tuning:** Injected session parameters (`minptime=10;useinbandfec=1;usedtx=1;maxaveragebitrate=48000`) for low packetization delay and forward error correction.
+
+### 3. Client-Side Code Execution Engine
+- Monaco Editor running custom dark tokens matching a 9-step zinc scale.
+- TypeScript transpilation executed on the client using `@sucrase` in sub-millisecond time (< 4ms), avoiding expensive remote container spin-up for rapid iterative testing.
+- Multi-language syntax support: TypeScript, JavaScript, Python, Rust, Go.
 
 ---
 
-## 🏗️ Architecture & Protocols
+## Architecture Overview
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Alice as Peer A (Host)
-    participant Signaler as WebSocket Signaling Server (:3001)
-    actor Bob as Peer B (Partner)
-
-    Note over Alice,Bob: 1. Discovery & Signaling Handshake
-    Alice->>Signaler: join-room (roomId: "alpha")
-    Bob->>Signaler: join-room (roomId: "alpha")
-    Signaler-->>Alice: peer-joined (Bob)
-    
-    Note over Alice,Bob: 2. SDP Negotiation
-    Alice->>Alice: createOffer() & setLocalDescription()
-    Alice->>Signaler: signal: offer (SDP)
-    Signaler->>Bob: signal: offer (SDP)
-    Bob->>Bob: setRemoteDescription(offer)
-    Bob->>Bob: createAnswer() & setLocalDescription()
-    Bob->>Signaler: signal: answer (SDP)
-    Signaler->>Alice: signal: answer (SDP)
-    Alice->>Alice: setRemoteDescription(answer)
-
-    Note over Alice,Bob: 3. ICE Candidate Discovery (STUN)
-    Alice->>Signaler: ice-candidate
-    Signaler->>Bob: ice-candidate
-    Bob->>Signaler: ice-candidate
-    Signaler->>Alice: ice-candidate
-
-    Note over Alice,Bob: 4. Direct P2P Mesh Established (Signaling Bypassed)
-    Alice<<-->>Bob: Direct MediaStream (Video/Audio/Screen)
-    Alice<<-->>Bob: Direct RTCDataChannel (Keystrokes, Cursors, State)
+```
+[ Peer A (Browser) ] <============ Encrypted WebRTC P2P Mesh ============> [ Peer B (Browser) ]
+         |            - Video / Audio (Opus 48kHz / VP8)                           |
+         |            - Low-Latency RTCDataChannel (Keystrokes, Cursors, Chat)      |
+         |                                                                         |
+         +------------------------+                     +--------------------------+
+                                  |                     |
+                                  v                     v
+                        [ Node.js WebSocket Signaling Gateway (:3001) ]
+                                  - SDP Offer/Answer Relay
+                                  - STUN ICE Candidate Exchange
+                                  - Heartbeat Telemetry & Room State
 ```
 
 ---
 
-## 🚀 Quickstart & Local Development
+## Getting Started
 
-### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm** or **pnpm**
+### Prerequisites
+- Node.js 18.17+ or 20+
+- npm, pnpm, or bun
 
-### 2. Installation
+### Local Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/<your-username>/paircraft.git
+   cd paircraft
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development servers:**
+   ```bash
+   npm run dev
+   ```
+   This concurrently boots:
+   - Next.js Turbopack client: `http://localhost:3000`
+   - Signaling gateway: `ws://localhost:3001` (Health: `http://localhost:3001/health`)
+
+4. **Verify Split-Screen Collaboration:**
+   - Open `http://localhost:3000` in Chrome and create a session.
+   - Copy the room URL and open it in a second window or an incognito tab.
+   - Verify low-latency peer connection (`P2P Direct` green pill), real-time typing sync, and chat alerts.
+
+---
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_SIGNALING_URL` | `ws://localhost:3001` | Public WebSocket endpoint for the signaling gateway in production |
+| `PORT` | `3001` | Port for the standalone signaling server (`server.js`) |
+
+---
+
+## Production Deployment
+
+### Frontend (Vercel)
+The client is a standard Next.js 16 App Router application:
 ```bash
-git clone https://github.com/your-username/webrtc-pair-ide.git
-cd webrtc-pair-ide
-npm install
+npx vercel
 ```
+Or import the repository directly in the Vercel dashboard.
 
-### 3. Run Development Environment
-A single command concurrently starts both the Next.js development server and the WebSocket signaling server:
-
+### Signaling Gateway (Render / Railway / Fly.io / VPS)
+Run the lightweight signaling gateway:
 ```bash
-npm run dev
+node server.js
 ```
-
-- **Web Application:** [http://localhost:3000](http://localhost:3000)
-- **Signaling Server:** [ws://localhost:3001](ws://localhost:3001) (Health check: [http://localhost:3001/health](http://localhost:3001/health))
+Then configure `NEXT_PUBLIC_SIGNALING_URL=wss://<your-signaling-host>` in your frontend environment settings.
 
 ---
 
-## 🧪 Testing Split-Screen Collaboration
-
-1. Open **[http://localhost:3000](http://localhost:3000)** in Google Chrome.
-2. Enter your name and click **"Create Instant Room"**.
-3. Click the **"Copy Room Link"** button in the header.
-4. Open an **Incognito Window** (`Ctrl + Shift + N`) or a secondary browser profile.
-5. Snap both windows side-by-side (`Win + Left` and `Win + Right`).
-6. Paste the URL into the Incognito window and join.
-7. Experience instant WebRTC audio/video streaming, sub-20ms code sync, and remote cursor tracking.
-
----
-
-## 📦 Tech Stack
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend Framework** | Next.js 16 (App Router, Turbopack, React 19) |
-| **Real-Time P2P** | WebRTC (`RTCPeerConnection`, `RTCDataChannel`, Google STUN) |
-| **Signaling** | Node.js, `ws` (WebSockets), HTTP Healthchecks |
-| **Editor** | Monaco Editor (`@monaco-editor/react`), Custom Decorator Markers |
-| **Styling & UI** | Tailwind CSS v4, Lucide Icons, Canvas Confetti |
-
----
-
-## 📄 License
-MIT License. Built for seamless developer collaboration.
+## License
+MIT
