@@ -7,7 +7,7 @@ import CodeEditor from '@/components/CodeEditor';
 import {
   Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff,
   Copy, Check, Users, MessageSquare, Zap, Shield,
-  Volume2, VolumeX, ArrowLeft, SlidersHorizontal
+  Volume2, VolumeX, ArrowLeft
 } from 'lucide-react';
 
 const INITIAL_CODE = `// PairCraft Collaborative Workspace
@@ -48,11 +48,14 @@ function RoomContent() {
   const [chatMessages, setChatMessages] = useState<Array<{ text: string; sender: string; time: string }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [incomingToast, setIncomingToast] = useState<{ sender: string; text: string } | null>(null);
+  const [systemToast, setSystemToast] = useState<string | null>(null);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const savedName = localStorage.getItem('paircraft_username') || `Dev-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -72,7 +75,6 @@ function RoomContent() {
     setRemoteVolume,
     toggleSpeakerMute,
     latencyMs,
-    audioDSPActive,
     voiceActivity,
     toggleAudio,
     toggleVideo,
@@ -85,7 +87,7 @@ function RoomContent() {
     roomId,
     userName,
     onCodeSync: (newCode) => {
-      setCode(newCode);
+      setCode((prev) => (prev === newCode ? prev : newCode));
     },
     onCursorSync: (cursor, sender) => {
       setRemoteCursor({ ...cursor, sender });
@@ -95,10 +97,38 @@ function RoomContent() {
     },
     onChatMessage: (msg) => {
       setChatMessages((prev) => [...prev, msg]);
+
+      // If message is from partner and chat drawer is closed, trigger unread badge & on-screen toast!
+      if (msg.sender !== userName) {
+        setUnreadMessages((prev) => prev + 1);
+        setIncomingToast({ sender: msg.sender, text: msg.text });
+        setTimeout(() => setIncomingToast(null), 4500);
+      }
+    },
+    onPeerLeft: () => {
+      setRemoteCursor(null);
+      setSystemToast('Partner disconnected from session');
+      setTimeout(() => setSystemToast(null), 3500);
     }
   });
 
-  // Attach local media stream (strictly muted to prevent acoustic echo)
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (isChatOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatOpen]);
+
+  // Reset unread count when chat is opened
+  const handleToggleChat = () => {
+    if (!isChatOpen) {
+      setUnreadMessages(0);
+      setIncomingToast(null);
+    }
+    setIsChatOpen((prev) => !prev);
+  };
+
+  // Attach local media stream (strictly muted)
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
@@ -113,14 +143,14 @@ function RoomContent() {
       remoteVideoRef.current.volume = isSpeakerMuted ? 0 : remoteVolume;
       remoteVideoRef.current.play().catch(e => console.log('Remote stream playback triggered:', e));
       
-      // Sleek professional toast
-      setToastMessage('Connected to peer via direct WebRTC mesh');
-      const timer = setTimeout(() => setToastMessage(null), 3500);
+      setSystemToast('Connected to peer via direct WebRTC mesh');
+      const timer = setTimeout(() => setSystemToast(null), 3500);
       return () => clearTimeout(timer);
     }
   }, [remoteStream, isSpeakerMuted, remoteVolume]);
 
   const handleCodeChange = (newCode: string) => {
+    if (newCode === code) return;
     setCode(newCode);
     syncCode(newCode);
   };
@@ -143,7 +173,8 @@ function RoomContent() {
 
   const copyRoomLink = () => {
     if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
+      const url = window.location.href;
+      navigator.clipboard.writeText(url);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
@@ -202,12 +233,10 @@ function RoomContent() {
         {/* Telemetry and Controls */}
         <div className="flex items-center gap-2">
           {/* DSP Filter Badge */}
-          {audioDSPActive && (
-            <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400" title="Web Audio DSP: 85Hz Highpass + Dynamics Compressor Active">
-              <Shield className="w-3 h-3 text-emerald-500" />
-              <span>DSP Noise Gate</span>
-            </div>
-          )}
+          <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400" title="Studio Audio DSP: 90Hz Highpass + 3.8kHz Lowpass Active">
+            <Shield className="w-3 h-3 text-emerald-500" />
+            <span>Studio Voice DSP</span>
+          </div>
 
           {/* Latency Pill */}
           {latencyMs !== null && (
@@ -251,30 +280,36 @@ function RoomContent() {
             <span>{peers.length + 1}</span>
           </div>
 
-          {/* Speaker Mute (Protects against acoustic feedback on same-device testing) */}
+          {/* Speaker Mute & Echo Feedback Guard */}
           <button
             onClick={toggleSpeakerMute}
-            className={`p-1.5 rounded border transition ${
+            className={`p-1.5 rounded border transition flex items-center gap-1 text-xs ${
               isSpeakerMuted
                 ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border-zinc-800'
+                : 'bg-zinc-900 text-zinc-300 hover:text-white border-zinc-800'
             }`}
-            title={isSpeakerMuted ? 'Unmute Partner Audio' : 'Mute Partner Audio (Prevents Echo Loop)'}
+            title={isSpeakerMuted ? 'Unmute Partner Audio (Currently muted to prevent acoustic feedback)' : 'Mute Partner Audio (Echo Guard)'}
           >
             {isSpeakerMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            {isSpeakerMuted && <span className="hidden xl:inline text-[10px] font-mono">Echo Guard</span>}
           </button>
 
-          {/* Chat Toggle */}
+          {/* Chat Toggle with Unread Badge */}
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className={`p-1.5 rounded border transition ${
+            onClick={handleToggleChat}
+            className={`relative p-1.5 rounded border transition ${
               isChatOpen
                 ? 'bg-zinc-800 text-zinc-100 border-zinc-700'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800'
             }`}
-            title="Toggle Notes / Chat"
+            title="Toggle Session Chat"
           >
             <MessageSquare className="w-3.5 h-3.5" />
+            {unreadMessages > 0 && !isChatOpen && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-emerald-500 text-zinc-950 font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                {unreadMessages}
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -436,7 +471,7 @@ function RoomContent() {
                 Session Notes & Chat
               </span>
               <button
-                onClick={() => setIsChatOpen(false)}
+                onClick={handleToggleChat}
                 className="text-zinc-500 hover:text-zinc-300 text-xs"
               >
                 ✕
@@ -466,6 +501,7 @@ function RoomContent() {
                   </div>
                 ))
               )}
+              <div ref={chatBottomRef} />
             </div>
 
             <form onSubmit={handleSendChat} className="p-2 border-t border-zinc-800 bg-zinc-950">
@@ -489,11 +525,30 @@ function RoomContent() {
         )}
       </div>
 
-      {/* Minimalist Floating Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-zinc-900/95 border border-zinc-700 text-zinc-200 text-xs font-mono rounded shadow-xl animate-slide-up backdrop-blur">
+      {/* On-Screen Incoming Message Toast Notification */}
+      {incomingToast && !isChatOpen && (
+        <div
+          onClick={handleToggleChat}
+          className="fixed top-15 right-4 z-50 flex items-start gap-2.5 p-3 bg-zinc-900/95 border border-zinc-700/90 text-zinc-200 rounded-lg shadow-2xl cursor-pointer hover:border-emerald-500/50 transition backdrop-blur animate-slide-down max-w-xs"
+        >
+          <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1 shrink-0 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-300">
+              <span>{incomingToast.sender}</span>
+              <span className="text-[10px] text-zinc-500">Click to reply</span>
+            </div>
+            <p className="text-xs text-zinc-100 truncate mt-0.5 font-sans">
+              {incomingToast.text}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* System Status Toast */}
+      {systemToast && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-zinc-900/95 border border-zinc-700 text-zinc-200 text-xs font-mono rounded shadow-xl backdrop-blur">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>{toastMessage}</span>
+          <span>{systemToast}</span>
         </div>
       )}
     </div>

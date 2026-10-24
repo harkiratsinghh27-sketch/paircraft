@@ -15,15 +15,16 @@ export interface UseWebRTCOptions {
   onCursorSync?: (cursor: { line: number; column: number; selection?: string }, sender: string) => void;
   onLanguageChange?: (lang: string, sender: string) => void;
   onChatMessage?: (msg: { text: string; sender: string; time: string }) => void;
+  onPeerLeft?: (peerId: string) => void;
 }
 
-// Low-latency Opus SDP tuning: 10ms frame size, FEC forward error correction, DTX voice detection
+// Low-latency Opus SDP tuning: 10ms frame size, FEC error correction, voice DTX
 function tuneOpusSDP(sdp: string): string {
   return sdp.replace(
     /a=fmtp:(\d+)(.*)/g,
     (match, pt, params) => {
       if (sdp.includes(`a=rtpmap:${pt} opus/48000`)) {
-        return `a=fmtp:${pt} minptime=10;useinbandfec=1;usedtx=1;maxaveragebitrate=64000;stereo=0;sprop-stereo=0${params}`;
+        return `a=fmtp:${pt} minptime=10;useinbandfec=1;usedtx=1;maxaveragebitrate=48000;stereo=0;sprop-stereo=0${params}`;
       }
       return match;
     }
@@ -37,7 +38,8 @@ export function useWebRTC({
   onCodeSync,
   onCursorSync,
   onLanguageChange,
-  onChatMessage
+  onChatMessage,
+  onPeerLeft
 }: UseWebRTCOptions) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -46,11 +48,12 @@ export function useWebRTC({
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
-  const [remoteVolume, setRemoteVolume] = useState<number>(1.0);
+  
+  // Default speaker muted on localhost to prevent ear-piercing acoustic feedback loop on same laptop
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState<boolean>(true);
+  const [remoteVolume, setRemoteVolume] = useState<number>(0.8);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [peerId, setPeerId] = useState<string>('');
-  const [audioDSPActive, setAudioDSPActive] = useState<boolean>(true);
   const [voiceActivity, setVoiceActivity] = useState<number>(0);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -65,7 +68,7 @@ export function useWebRTC({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
-  // Keep callback refs fresh to avoid stale closures
+  // Keep callback refs fresh
   const onCodeSyncRef = useRef(onCodeSync);
   onCodeSyncRef.current = onCodeSync;
   const onCursorSyncRef = useRef(onCursorSync);
@@ -74,6 +77,8 @@ export function useWebRTC({
   onLanguageChangeRef.current = onLanguageChange;
   const onChatMessageRef = useRef(onChatMessage);
   onChatMessageRef.current = onChatMessage;
+  const onPeerLeftRef = useRef(onPeerLeft);
+  onPeerLeftRef.current = onPeerLeft;
 
   // Generate unique peer ID
   useEffect(() => {
@@ -81,7 +86,7 @@ export function useWebRTC({
     setPeerId(id);
   }, []);
 
-  // Helper to flush queued candidates once remoteDescription is set
+  // Flush queued candidates once remoteDescription is set
   const flushQueuedCandidates = async (pc: RTCPeerConnection) => {
     while (queuedIceCandidatesRef.current.length > 0) {
       const cand = queuedIceCandidatesRef.current.shift();
@@ -89,13 +94,13 @@ export function useWebRTC({
         try {
           await pc.addIceCandidate(new RTCIceCandidate(cand));
         } catch (err) {
-          console.warn('Error adding queued ICE candidate:', err);
+          console.warn('Queued ICE candidate ignored:', err);
         }
       }
     }
   };
 
-  // Setup Web Audio API DSP Filter Graph (85Hz Highpass + 8kHz Lowpass + Dynamics Compressor)
+  // Studio Audio DSP: 90Hz Highpass + 3800Hz Lowpass (cuts metallic screech/hiss) + Compressor
   const setupAudioDSP = useCallback((rawTrack: MediaStreamTrack): MediaStreamTrack => {
     try {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -106,25 +111,26 @@ export function useWebRTC({
 
       const source = audioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
 
-      // 1. High-pass filter (85Hz): eliminates laptop fan hum, desk vibration, AC rumble
+      // 1. High-pass filter (90Hz): removes fan rumbling and desk knocks
       const highpass = audioCtx.createBiquadFilter();
       highpass.type = 'highpass';
-      highpass.frequency.setValueAtTime(85, audioCtx.currentTime);
+      highpass.frequency.setValueAtTime(90, audioCtx.currentTime);
 
-      // 2. Low-pass filter (8000Hz): cuts high-frequency electrical hiss/screech
+      // 2. Low-pass filter (3800Hz): strictly cuts high-frequency coil whine, hiss, and acoustic feedback screech
       const lowpass = audioCtx.createBiquadFilter();
       lowpass.type = 'lowpass';
-      lowpass.frequency.setValueAtTime(8000, audioCtx.currentTime);
+      lowpass.frequency.setValueAtTime(3800, audioCtx.currentTime);
+      lowpass.Q.setValueAtTime(0.707, audioCtx.currentTime); // Flat Butterworth passband
 
-      // 3. Dynamics Compressor: acts as automatic gain control + soft noise gate
+      // 3. Dynamics Compressor (normalizes speech, soft noise gate)
       const compressor = audioCtx.createDynamicsCompressor();
-      compressor.threshold.setValueAtTime(-28, audioCtx.currentTime);
-      compressor.knee.setValueAtTime(8, audioCtx.currentTime);
+      compressor.threshold.setValueAtTime(-26, audioCtx.currentTime);
+      compressor.knee.setValueAtTime(6, audioCtx.currentTime);
       compressor.ratio.setValueAtTime(4, audioCtx.currentTime);
       compressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
       compressor.release.setValueAtTime(0.12, audioCtx.currentTime);
 
-      // 4. Analyser for real-time speech activity visualizer
+      // 4. Analyser for speech VU meter
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 64;
       analyserRef.current = analyser;
@@ -140,12 +146,12 @@ export function useWebRTC({
 
       return destination.stream.getAudioTracks()[0];
     } catch (e) {
-      console.warn('Web Audio DSP initialization error, using raw track:', e);
+      console.warn('Web Audio DSP error, using raw audio:', e);
       return rawTrack;
     }
   }, []);
 
-  // Voice activity polling for UI audio level indicator
+  // Voice activity polling for real-time speech meter
   useEffect(() => {
     if (!analyserRef.current) return;
     const analyser = analyserRef.current;
@@ -195,9 +201,8 @@ export function useWebRTC({
       setLocalStream(stream);
       return stream;
     } catch (err) {
-      console.warn('Physical camera/mic in use or restricted. Generating minimalist simulated stream:', err);
+      console.warn('Camera/mic locked by other process. Creating simulated 30fps canvas stream:', err);
 
-      // Create professional minimalist canvas stream
       const canvas = document.createElement('canvas');
       canvas.width = 640;
       canvas.height = 480;
@@ -251,7 +256,6 @@ export function useWebRTC({
         const initials = (userName || 'Dev').slice(0, 2).toUpperCase();
         ctx.fillText(initials, 320, 215);
 
-        // Name & Tag
         ctx.font = '600 13px system-ui, -apple-system, sans-serif';
         ctx.fillStyle = '#e4e4e7';
         ctx.fillText(userName || 'Engineer', 320, 280);
@@ -266,21 +270,27 @@ export function useWebRTC({
 
       const stream = canvas.captureStream(30);
 
-      // Add dummy audio track for complete SDP m-lines
+      // PURE SILENT BUFFER AUDIO (Zero oscillator, zero tone, zero ping sound!)
       try {
         const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioCtxClass) {
           const audioCtx = new AudioCtxClass();
-          const osc = audioCtx.createOscillator();
+          const silentBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+          const src = audioCtx.createBufferSource();
+          src.buffer = silentBuffer;
+          src.loop = true;
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0.0; // Strictly 0 amplitude
+          src.connect(gain);
           const dst = audioCtx.createMediaStreamDestination();
-          osc.connect(dst);
-          osc.start();
-          const dummyAudio = dst.stream.getAudioTracks()[0];
-          dummyAudio.enabled = false;
-          stream.addTrack(dummyAudio);
+          gain.connect(dst);
+          src.start();
+          const silentAudio = dst.stream.getAudioTracks()[0];
+          silentAudio.enabled = false;
+          stream.addTrack(silentAudio);
         }
       } catch (e) {
-        console.warn('Dummy audio track creation skipped:', e);
+        console.warn('Silent audio track setup skipped:', e);
       }
 
       localStreamRef.current = stream;
@@ -326,7 +336,7 @@ export function useWebRTC({
     };
   }, []);
 
-  // Setup RTCPeerConnection with low-latency media constraints
+  // Setup RTCPeerConnection
   const createPeerConnection = useCallback((stream: MediaStream, targetPeerId?: string) => {
     if (targetPeerId) {
       targetPeerIdRef.current = targetPeerId;
@@ -344,7 +354,7 @@ export function useWebRTC({
 
     pcRef.current = pc;
 
-    // Attach all local media tracks
+    // Attach local media tracks
     stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
@@ -427,7 +437,7 @@ export function useWebRTC({
             case 'room-joined': {
               setPeers(currentPeers || []);
 
-              // Newcomer initiates offer to the existing peer
+              // Newcomer initiates offer to existing peer
               if (currentPeers && currentPeers.length > 0) {
                 const target = currentPeers[0];
                 targetPeerIdRef.current = target.peerId;
@@ -541,6 +551,7 @@ export function useWebRTC({
               setPeers((prev) => prev.filter(p => p.peerId !== msg.peerId));
               setRemoteStream(null);
               setConnectionState('connected');
+              onPeerLeftRef.current?.(msg.peerId);
               if (pcRef.current) {
                 pcRef.current.close();
                 pcRef.current = null;
@@ -595,7 +606,7 @@ export function useWebRTC({
     };
   }, [peerId, roomId, userName, signalingUrl, initLocalMedia, createPeerConnection, setupDataChannel]);
 
-  // Audio Toggle (Hardware Mic mute)
+  // Audio Toggle
   const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
@@ -609,7 +620,7 @@ export function useWebRTC({
     }
   }, []);
 
-  // Video Toggle (Hardware Camera mute)
+  // Video Toggle
   const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
@@ -620,7 +631,7 @@ export function useWebRTC({
     }
   }, []);
 
-  // Speaker Mute Toggle (Protects against acoustic echo during local testing)
+  // Speaker Mute Toggle
   const toggleSpeakerMute = useCallback(() => {
     setIsSpeakerMuted(prev => !prev);
   }, []);
@@ -667,7 +678,7 @@ export function useWebRTC({
     }
   }, [isScreenSharing]);
 
-  // Real-time broadcast helper
+  // Broadcast helper
   const broadcast = useCallback((type: string, payload: any) => {
     const msg = JSON.stringify({
       type,
@@ -721,7 +732,6 @@ export function useWebRTC({
     setRemoteVolume,
     toggleSpeakerMute,
     latencyMs,
-    audioDSPActive,
     voiceActivity,
     toggleAudio,
     toggleVideo,

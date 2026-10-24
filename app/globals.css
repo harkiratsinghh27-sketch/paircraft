@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 :root {
   --background: #09090b;
   --foreground: #f4f4f5;
@@ -11,7 +16,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   overflow-x: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: -0.011em;
 }
 
@@ -32,7 +37,7 @@ body {
   margin-left: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   pointer-events: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Custom Minimal Scrollbar */
@@ -54,11 +59,11 @@ body {
   background: #3f3f46;
 }
 
-/* Smooth Toast Animations */
-@keyframes slideUpFade {
+/* Toast Animations */
+@keyframes slideDownFade {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
@@ -66,6 +71,21 @@ body {
   }
 }
 
-.animate-slide-up {
-  animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-slide-down {
+  animation: slideDownFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
 }

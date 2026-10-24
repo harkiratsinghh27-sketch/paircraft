@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PairCraft — Real-Time WebRTC Collaborative Pair Programming IDE",
-  description: "Peer-to-peer low-latency video, crystal-clear voice, screen share, and synchronized multi-cursor Monaco code editor in your browser. Built for engineering teams and technical interviews.",
+  title: "PairCraft — Real-Time WebRTC Collaborative IDE",
+  description: "Direct peer-to-peer low-latency video, studio audio, screen share, and synchronized Monaco code editor in your browser.",
   keywords: ["WebRTC", "Pair Programming", "Monaco Editor", "Collaborative Code", "Screen Share", "Next.js", "P2P"],
   authors: [{ name: "Harkirat Singh" }],
   openGraph: {
-    title: "PairCraft — Real-Time WebRTC Collaborative Pair Programming IDE",
-    description: "Peer-to-peer low-latency video, voice, screen share, and synchronized multi-cursor Monaco IDE.",
+    title: "PairCraft — Real-Time WebRTC Collaborative IDE",
+    description: "Direct peer-to-peer low-latency video, studio audio, screen share, and synchronized Monaco code editor.",
     type: "website"
   }
 };
@@ -34,7 +34,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full dark antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#070b13] text-slate-100">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#09090b] text-zinc-100 font-sans selection:bg-zinc-800">
+        {children}
+      </body>
     </html>
   );
 }
