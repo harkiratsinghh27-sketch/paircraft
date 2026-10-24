@@ -1,14 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useWebRTC } from '@/hooks/useWebRTC';
-import CodeEditor from '@/components/CodeEditor';
 import {
   Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff,
   Copy, Check, Users, MessageSquare, Zap, Shield,
   Volume2, VolumeX, ArrowLeft
 } from 'lucide-react';
+
+const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#0c0c0e] text-zinc-500 font-mono text-xs">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin" />
+        <span>Loading Monaco Engine...</span>
+      </div>
+    </div>
+  )
+});
 
 const INITIAL_CODE = `// PairCraft Collaborative Workspace
 // Low-Latency P2P Execution Engine
@@ -98,8 +110,8 @@ function RoomContent() {
     onChatMessage: (msg) => {
       setChatMessages((prev) => [...prev, msg]);
 
-      // If message is from partner and chat drawer is closed, trigger unread badge & on-screen toast!
-      if (msg.sender !== userName) {
+      // If message is from remote partner, trigger unread badge & on-screen toast!
+      if (!msg.isLocal) {
         setUnreadMessages((prev) => prev + 1);
         setIncomingToast({ sender: msg.sender, text: msg.text });
         setTimeout(() => setIncomingToast(null), 4500);

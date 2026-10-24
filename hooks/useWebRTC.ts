@@ -14,7 +14,7 @@ export interface UseWebRTCOptions {
   onCodeSync?: (code: string, sender: string) => void;
   onCursorSync?: (cursor: { line: number; column: number; selection?: string }, sender: string) => void;
   onLanguageChange?: (lang: string, sender: string) => void;
-  onChatMessage?: (msg: { text: string; sender: string; time: string }) => void;
+  onChatMessage?: (msg: { text: string; sender: string; time: string; isLocal?: boolean }) => void;
   onPeerLeft?: (peerId: string) => void;
 }
 
@@ -323,7 +323,7 @@ export function useWebRTC({
         } else if (msg.type === 'language-change') {
           onLanguageChangeRef.current?.(msg.payload, msg.sender);
         } else if (msg.type === 'chat-message') {
-          onChatMessageRef.current?.(msg.payload);
+          onChatMessageRef.current?.({ ...msg.payload, isLocal: false });
         } else if (msg.type === 'ping') {
           dc.send(JSON.stringify({ type: 'pong', timestamp: msg.timestamp }));
         } else if (msg.type === 'pong') {
@@ -543,7 +543,7 @@ export function useWebRTC({
             }
 
             case 'chat-message': {
-              onChatMessageRef.current?.(payload);
+              onChatMessageRef.current?.({ ...payload, isLocal: false });
               break;
             }
 
@@ -715,7 +715,7 @@ export function useWebRTC({
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     broadcast('chat-message', msg);
-    onChatMessageRef.current?.(msg);
+    onChatMessageRef.current?.({ ...msg, isLocal: true });
   }, [broadcast, userName]);
 
   return {
