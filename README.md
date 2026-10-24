@@ -1,5 +1,7 @@
 # PairCraft
 
+> **Live Deployment:** [https://paircraft-lyart.vercel.app](https://paircraft-lyart.vercel.app)
+
 A low-latency, peer-to-peer pair programming environment built with WebRTC DataChannels, custom Web Audio DSP, and Monaco.
 
 PairCraft establishes direct browser-to-browser data channels for keystroke and cursor synchronization, bypassing central databases and servers for editor state. Media streams (audio, webcam, screen share) travel directly between peers over encrypted SRTP/DTLS.
@@ -56,7 +58,7 @@ Audio streams pass through an in-browser Web Audio API signal processing chain b
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/<your-username>/paircraft.git
+   git clone https://github.com/harkiratsinghh27-sketch/paircraft.git
    cd paircraft
    ```
 
